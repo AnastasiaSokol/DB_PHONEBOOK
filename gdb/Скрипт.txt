@@ -1,0 +1,931 @@
+CREATE EXCEPTION HAS_TOWN 'Such a town already exists!';
+CREATE EXCEPTION HAS_RUBRICS 'Such a rubric already exists!';
+CREATE EXCEPTION HAS_PHONE 'Such a phone number already exists!';
+CREATE EXCEPTION HAS_PERSON_PHONE 'Such a phone number for person already exists!';
+CREATE EXCEPTION HAS_PERSON 'Such a person  already exists!';
+CREATE EXCEPTION HAS_ORG_PHONE 'Such a phone nuber foe organization already exists!';
+CREATE EXCEPTION HAS_ORG 'Such a organization already exists!';
+CREATE EXCEPTION CANNOTDEL_TOWN_HAVE_PERSON 'You can not delete a town as it contains persons!';
+CREATE EXCEPTION CANNOTDEL_TOWN_HAVE_ORG 'You can not delete a town as it contains organization!';
+
+
+CREATE GENERATOR ORG_GEN;
+SET GENERATOR ORG_GEN TO 0;
+CREATE GENERATOR ORG_PNONES_GEN;
+SET GENERATOR ORG_PNONES_GEN TO 0;
+CREATE GENERATOR PERSON_GEN;
+SET GENERATOR PERSON_GEN TO 0;
+CREATE GENERATOR PERSON_PHONES_GEN;
+SET GENERATOR PERSON_PHONES_GEN TO 0;
+CREATE GENERATOR PHONES_GEN;
+SET GENERATOR PHONES_GEN TO 0;
+CREATE GENERATOR RUBRICS_GEN;
+SET GENERATOR RUBRICS_GEN TO 0;
+CREATE GENERATOR TOWN_GEN;
+SET GENERATOR TOWN_GEN TO 0;
+
+
+
+
+CREATE PROCEDURE DEL_ORG (
+    p_id_organization integer)
+as
+begin
+  delete from ORGANIZATION where id_organization=:p_id_organization;
+  suspend;
+end
+
+
+CREATE PROCEDURE DEL_ORG_PHONES (
+    pid_number_of_org integer)
+as
+begin
+  delete from ORGANIZATION_PHONES where id_number_of_org=:pid_number_of_org;
+  suspend;
+end
+
+CREATE PROCEDURE DEL_PERSON (
+    pid_person integer)
+as
+begin
+  delete from PERSON where id_person=:pid_person;
+  suspend;
+end
+
+
+
+
+CREATE PROCEDURE DEL_PERSON_PHONES (
+    pid_number_of_person integer)
+as
+begin
+  delete from PERSON_PHONES where id_number_of_person=:pid_number_of_person;
+  suspend;
+end
+
+
+
+CREATE PROCEDURE DEL_PHONES (
+    pid_number integer)
+as
+begin
+  delete from PHONES where id_number=:pid_number;
+  suspend;
+end
+
+
+
+
+CREATE PROCEDURE DEL_RUBRICS (
+    pid_rubric integer)
+as
+begin
+  delete from RUBRICS where id_rubric=:pid_rubric;
+  suspend;
+end
+
+
+
+CREATE PROCEDURE DEL_TOWN (
+    param_id_town integer)
+as
+declare variable k integer;
+declare variable l integer;
+begin
+  select count(*) from person where  ID_TOWN=:param_id_town into :K;
+  if (:K=0) then
+    delete from TOWN where  ID_TOWN=:param_id_town;
+  else exception CANNOTDEL_TOWN_HAVE_PERSON;
+  /*-------------------------------------------------------------------*/
+  select count(*) from organization where  ID_TOWN=:param_id_town into :L;
+  if (:L=0) then
+    delete from TOWN where  ID_TOWN=:param_id_town;
+  else exception CANNOTDEL_TOWN_HAVE_ORG;
+end
+
+
+
+
+
+CREATE PROCEDURE INS_ORG (
+    param_id integer,
+    param_org_name varchar(20),
+    param_street varchar(30),
+    param_house varchar(10),
+    param_id_rubric integer,
+    param_id_town integer,
+    param_inn integer)
+as
+declare variable k integer; /* count of org where eaqul inn */
+begin
+  select count(*) from organization where INN=:param_inn and NAME_OF_ORGANIZATION=:param_org_name INTO K;
+  /*or with such inn have not in table*/
+  if (:K=0) then
+    insert into organization (ID_ORGANIZATION, NAME_OF_ORGANIZATION, STREET, HOUSE, ID_RUBRIC, ID_TOWN, INN)
+    values (:param_id, :param_org_name, :param_street, :param_house, :param_id_rubric, :param_id_town, :param_inn);
+  else  
+    exception  has_org;
+end
+
+
+
+
+CREATE PROCEDURE INS_ORG_PHONES (
+    param_id integer,
+    param_id_organization integer,
+    param_id_number integer,
+    param_department_name varchar(20))
+as
+declare variable k integer; /* count of org_phons where eaqul id_org and id_number */
+begin
+  select count(*) from organization_phones
+  where id_organization=:param_id_organization and id_number=:param_id_number INTO K;
+  /*org_phones with such id_org and id_number have not in table*/
+  if (:K=0) then
+    insert into organization_phones (id_number_of_org, id_organization, id_number, department_name)
+    values (:param_id, :param_id_organization, :param_id_number, :param_department_name);
+  else  
+    exception  HAS_ORG_PHONE;
+end
+
+
+
+CREATE PROCEDURE INS_PERSON (
+    param_id integer,
+    param_passport_number varchar(20),
+    param_surname varchar(20),
+    param_name varchar(20),
+    param_patronymic varchar(20),
+    param_street varchar(30),
+    param_house varchar(10),
+    param_id_town integer)
+as
+declare variable k integer; /* count of person where eaqul passpot number */
+begin
+  select count(*) from PERSON where SERIAS_AND_NUMBER_PASSPORT=:param_passport_number INTO K;
+  /*or with such inn have not in table*/
+  if (:K=0) then
+    insert into PERSON (ID_PERSON, SERIAS_AND_NUMBER_PASSPORT, SURNAME, NAME, PATRONYMIC, STREET, HOUSE, ID_TOWN)
+    values (:param_id, :param_passport_number,:param_surname, :param_name, :param_patronymic, :param_street, :param_house, :param_id_town);
+  else  
+    exception  has_person;
+end
+
+
+
+
+
+CREATE PROCEDURE INS_PERSON_PHONES (
+    param_id integer,
+    param_id_person integer,
+    param_id_number integer,
+    param_phone_assignment varchar(20))
+as
+declare variable k integer; /* count of person_phones where eaqul id_person and id_number */
+begin
+  select count(*) from person_phones
+  where id_person=:param_id_person and id_number=:param_id_number INTO K;
+  /*person_phones with such id_person and id_number have not in table*/
+  if (:K=0) then
+    insert into person_phones (id_number_of_person, id_person, id_number, phone_assignment)
+    values (:param_id, :param_id_person, :param_id_number, :param_phone_assignment);
+  else  
+    exception  HAS_PERSON_PHONE;
+end
+
+
+
+
+
+CREATE PROCEDURE INS_PHONE (
+    param_id integer,
+    param_phone_number numeric(11,0),
+    param_minutes integer,
+    param_tariv integer)
+as
+declare variable k integer; /* count of phones where eaqul phone_number */
+begin
+  select count(*) from phones where phone_number=:param_phone_number INTO K;
+  /*phone with such number have not in table*/
+  if (:K=0) then
+    insert into phones (id_number, phone_number, minutes, tariv)
+    values (:param_id, :param_phone_number, :param_minutes, :param_tariv);
+  else  
+    exception  HAS_PHONE;
+end
+
+
+
+
+CREATE PROCEDURE INS_RUBRICS (
+    p_id integer,
+    param_name_of_rubric varchar(30))
+as
+declare variable k integer; /* count of rubrics where eaqul name_of_rubrics */
+begin
+  select count(*) from rubrics
+  where name_of_rubric=:param_name_of_rubric INTO k;
+  /*rubrics with such name have not in table*/
+
+  if (:k=0) then
+    insert into rubrics (id_rubric, name_of_rubric) values (:p_id, :param_name_of_rubric);
+  else
+    exception HAS_RUBRICS;
+    suspend;
+end
+
+
+
+
+CREATE PROCEDURE INS_TOWN (
+    param_id integer,
+    param_town_name varchar(30),
+    param_id_number integer,
+    param_country varchar(20))
+as
+declare variable k integer; /* count of town where eaqul town_name and country */
+begin
+  select count(*) from town where town_name=:param_town_name and country=:param_country INTO K;
+  /*town with such name have not in table*/
+  if (:K=0) then
+    insert into town (id_town, town_name, id_number, country)
+    values (:param_id, :param_town_name, :param_id_number, :param_country);
+    /*values ('3', :param_town_name, :param_id_number, :param_country);  */
+  else  
+    exception  HAS_TOWN;
+end
+
+
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_ORG FOR ORGANIZATION
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+   New.id_organization = GEN_ID(ORG_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_ORG_PHONES FOR ORGANIZATION_PHONES
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+    New.id_number_of_org = GEN_ID(ORG_PNONES_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_PERSON FOR PERSON
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+  New.id_person = GEN_ID(PERSON_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_PERSON_PHONES FOR PERSON_PHONES
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+     New.id_number_of_person = GEN_ID(PERSON_PHONES_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_PHONE FOR PHONES
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+  New.id_number = GEN_ID(PHONES_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+/*---------------------------------------------------------------------------------*/
+SET TERM ^ ;
+
+
+
+CREATE TRIGGER INS_TOWN FOR TOWN
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+   New.id_town= GEN_ID(TOWN_GEN,1);
+end
+^
+
+
+SET TERM ; ^
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE N_ORG 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(ORG_GEN,1);
+end
+
+
+
+
+
+
+
+
+CREATE PROCEDURE N_ORG_PHONES 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(ORG_PNONES_GEN,1);
+end
+
+
+
+
+
+
+
+CREATE PROCEDURE N_PERSON 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(PERSON_GEN,1);
+end
+
+
+
+
+
+CREATE PROCEDURE N_PERSON_PHONES 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(PERSON_PHONES_GEN,1);
+end
+
+
+
+
+
+
+CREATE PROCEDURE N_PHONES 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(PHONES_GEN,1);
+end
+
+
+
+CREATE PROCEDURE N_RUBRICS 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(RUBRICS_GEN,1);
+end
+
+
+
+
+CREATE PROCEDURE N_TOWN 
+returns (
+    n integer)
+as
+begin
+  N=GEN_ID(TOWN_GEN,1);
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE PO_GROUP_BY_TANDR 
+returns (
+    pname_of_organization varchar(20),
+    pname_rubric varchar(30),
+    ptown_name varchar(30),
+    pphone_number numeric(11,0))
+as
+begin
+  for select  name_of_organization, town.town_name , RUBRICS.name_of_rubric,PHONES.phone_number
+  from  organization, town, RUBRICS, PHONES, ORGANIZATION_PHONES
+  where organization.id_town=town.id_town  and organization.id_rubric=RUBRICS.id_rubric
+  and  organization.id_organization=ORGANIZATION_PHONES.id_organization
+  and  ORGANIZATION_PHONES.id_number=PHONES.id_number
+  group by   town_name, name_of_rubric, name_of_organization, phone_number
+  into  :pname_of_organization, :ptown_name,:pname_rubric,:pphone_number
+  do
+  suspend;
+
+
+
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE PO_KT_KR (
+    p_id_town integer,
+    p_id_rubric integer)
+returns (
+    p_name_of_organization varchar(20),
+    p_country varchar(20),
+    p_town_name varchar(30),
+    p_street varchar(30),
+    p_house varchar(10),
+    p_inn integer,
+    p_name_of_rubric varchar(30),
+    p_number_of_phone numeric(11,0))
+as
+begin
+  for select name_of_organization, country, town_name, street, house, inn, name_of_rubric, phone_number
+  from  ORGANIZATION o, organization_phones op, RUBRICS r, PHONES h, TOWN t
+  where o.id_town=t.id_town and o.id_rubric=r.id_rubric and o.id_organization=op.id_organization and op.id_number=h.id_number
+  and o.id_town=:p_id_town and o.id_rubric=:p_id_rubric
+  order by name_of_organization
+  into
+   :p_name_of_organization ,
+   :p_country ,
+   :p_town_name ,
+   :p_street ,
+   :p_house ,
+   :p_inn ,
+   :p_name_of_rubric ,
+   :p_number_of_phone
+  do
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE PP_ORDER_BY_ALF (
+    p_id_town integer)
+returns (
+    p_surname varchar(20),
+    p_name varchar(20),
+    p_patronymic varchar(20),
+    l_phone_assignment varchar(20),
+    h_phone_number numeric(11,0),
+    t_town_name varchar(30),
+    t_country varchar(20))
+as
+begin
+  for select p.surname, p.name, p.patronymic,
+  l.phone_assignment,
+  h.phone_number,
+  t.town_name, t.country
+  from  PERSON p, PERSON_PHONES l, PHONES h, TOWN t
+  where p.id_town=t.id_town and p.id_town=:p_id_town and p.id_person=l.id_person and l.id_number=h.id_number
+  order by p.surname into   :p_surname, :p_name , :p_patronymic,
+  :l_phone_assignment,
+  :h_phone_number,
+  :t_town_name,:t_country
+  do
+  suspend;
+end
+
+
+CREATE PROCEDURE TOWN_ORDER_BY_ALFAVIT 
+returns (
+    p_town_name varchar(30),
+    p_country varchar(20),
+    p_phone_number numeric(11,0))
+as
+begin
+  For select t.town_name, t.country, p.phone_number
+  from TOWN t, PHONES p
+  where t.id_number=p.id_number
+  order by t.town_name into :p_town_name, :p_country, :p_phone_number
+  do
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_ORGANIZATION (
+    p_id_organization integer,
+    p_name_of_organization varchar(20),
+    p_street varchar(30),
+    p_house varchar(10),
+    p_id_rubric integer,
+    p_id_town integer,
+    p_inn integer)
+as
+declare variable k integer;
+begin
+  select count(*) from ORGANIZATION
+  Where name_of_organization=:p_name_of_organization and inn=:p_inn into :k;
+  if (:k=0) then
+    UPDATE ORGANIZATION
+    SET name_of_organization=:p_name_of_organization,
+    street=:p_street,
+    house=:p_house,
+    id_rubric=:p_id_rubric,
+    id_town=:p_id_town,
+    inn=:p_inn
+    WHERE id_organization=:p_id_organization;
+  else
+    exception HAS_ORG;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_ORGANIZATION_PHONES (
+    p_id_number_of_org integer,
+    p_id_organization integer,
+    p_id_number integer,
+    p_department_name varchar(20))
+as
+declare variable k integer;
+begin
+  select count(*) from ORGANIZATION_PHONES
+  Where id_organization=:p_id_organization and id_number=:p_id_number into :k;
+  if (:k=0) then
+    UPDATE ORGANIZATION_PHONES
+    SET id_organization=:p_id_organization,
+    id_number=:p_id_number,
+    department_name=:p_department_name
+    WHERE id_number_of_org=:p_id_number_of_org;
+  else
+    exception HAS_ORG_PHONE;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_PERSON (
+    p_id_person integer,
+    p_serias_and_number_passport varchar(20),
+    p_surname varchar(20),
+    p_name varchar(20),
+    p_patronymic varchar(20),
+    p_street varchar(30),
+    p_house varchar(10),
+    p_id_town integer)
+as
+declare variable k integer;
+begin
+  select count(*) from PERSON
+  Where serias_and_number_passport=:p_serias_and_number_passport into :k;
+  if (:k=0) then
+    UPDATE PERSON
+    SET serias_and_number_passport=:p_serias_and_number_passport,
+    surname=:p_surname,
+    name=:p_name,
+    patronymic=:p_patronymic,
+    street=:p_street,
+    house=:p_house,
+    id_town=:p_id_town
+    WHERE id_person=:p_id_person;
+  else
+    exception HAS_PERSON;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_PERSON_PHONES (
+    p_id_number_of_person integer,
+    p_id_person integer,
+    p_id_number integer,
+    p_phone_assignment varchar(20))
+as
+declare variable k integer;
+begin
+  select count(*) from PERSON_PHONES
+  Where id_person=:p_id_person and id_number=:p_id_number into :k;
+  if (:k=0) then
+    UPDATE PERSON_PHONES
+    SET id_person=:p_id_person, id_number=:p_id_number, phone_assignment=:p_phone_assignment
+    WHERE id_number_of_person=:p_id_number_of_person;
+  else
+    exception HAS_PERSON_PHONE;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_PHONE (
+    p_id_number integer,
+    p_phone_number numeric(11,0),
+    p_minutes integer,
+    p_tariv integer)
+as
+declare variable k integer;
+begin
+  select count(*) from PHONES
+  Where phone_number=:p_phone_number into :k;
+  if (:k=0) then
+    UPDATE PHONES
+    SET phone_number=:p_phone_number,minutes=:p_minutes, tariv=:p_tariv
+    WHERE id_number=:p_id_number;
+  else
+    exception HAS_PHONE;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_RUBRICS (
+    pid_rubric integer,
+    prubric_name varchar(30))
+as
+declare variable k integer;
+begin
+  select count(*) from RUBRICS
+  Where name_of_rubric=:prubric_name into :k;
+  if (:k=0) then
+    UPDATE RUBRICS
+    SET name_of_rubric=:prubric_name
+    WHERE id_rubric=:pid_rubric;
+  else
+    exception HAS_RUBRICS;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+CREATE PROCEDURE UPD_TOWN (
+    p_id_town integer,
+    p_town_name varchar(30),
+    p_id_number integer,
+    p_country varchar(20))
+as
+declare variable k integer;
+begin
+  select count(*) from TOWN
+  Where town_name=:p_town_name and country=:p_country into :k;
+  if (:k=0) then
+    UPDATE TOWN
+    SET town_name=:p_town_name, id_number=:p_id_number, country=:p_country
+    WHERE id_town=:p_id_town;
+  else
+    exception HAS_TOWN;
+  suspend;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE VIEW PHONE_ORGS(
+    NAME_OF_ORGANIZATION,
+    STREET,
+    HOUSE,
+    INN,
+    DEPARTMENT_NAME,
+    PHONE_NUMBER,
+    NAME_OF_RUBRIC,
+    TOWN_NAME,
+    COUNTRY)
+AS
+select
+o.name_of_organization, o.street, o.house, o.inn,
+op.department_name, 
+p.phone_number,
+r.name_of_rubric,
+t.town_name, t.country
+from organization o, organization_phones op, phones p, rubrics r, town t
+where  o.id_organization=op.id_organization and o.id_rubric=r.id_rubric and
+o.id_town=t.id_town and op.id_number=p.id_number
+;
+
+
+
+
+
+
+
+
+
+
+
+CREATE VIEW PHONE_PERSONS(
+    SERIAS_AND_NUMBER_PASSPORT,
+    SURNAME,
+    NAME,
+    PATRONYMIC,
+    COUNTRY,
+    TOWN_NAME,
+    STREET,
+    HOUSE,
+    PHONE_NUMBER,
+    PHONE_ASSIGNMENT)
+AS
+select
+p.serias_and_number_passport, p.surname, p.name, p.patronymic, t.country, t.town_name, p.street, p.house,
+h.phone_number,
+pp.phone_assignment
+from person p, person_phones pp, phones h, town t
+where  p.id_person=pp.id_person and
+h.id_number=pp.id_number and
+p.id_town=t.id_town
+;
+
